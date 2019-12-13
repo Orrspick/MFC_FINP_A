@@ -1,3 +1,10 @@
+/* 본프로그램 작성은
+
+OS : Windows 10 Pro 1909(18363.535)
+IDE : Visual Studio 2019 16.4.1
+
+에서 작성됨을 알려드립니다.
+*/
 
 // MyAppDlg.cpp : 구현 파일
 //
@@ -68,6 +75,8 @@ BEGIN_MESSAGE_MAP(CMyAppDlg, CDialogEx)
 	ON_BN_CLICKED(IDC_BTN_COMM_CONFIG, &CMyAppDlg::OnBnClickedBtnCommConfig)
 	ON_BN_CLICKED(IDC_BTN_COMM_OPEN_CLOSE, &CMyAppDlg::OnBnClickedBtnCommOpenClose)
 	ON_WM_CLOSE()
+	ON_BN_CLICKED(IDC_BUTTON_SS, &CMyAppDlg::OnBnClickedButtonSs)
+	ON_MESSAGE(WM_MYBUS_ADC_VALUE, & CMyAppDlg::ADV1Access)
 END_MESSAGE_MAP()
 
 
@@ -232,4 +241,172 @@ void CMyAppDlg::OnClose()
 	}
 
 	CDialogEx::OnClose();
+}
+
+
+
+void CMyAppDlg::Send(UINT8 f, UINT8 a, UINT8 h, UINT8 l)
+{
+	// TODO: 여기에 구현 코드 추가
+	_MyBusFrame Q;
+	Q.ui8Func = f;         // LED 레지스터 제어 명령
+	Q.ui8Addr = a;         // 레지스터 A
+	Q.ui8DataH = h;
+	Q.ui8DataL = l;
+	MyBusSendFrame(&Q);
+}
+
+
+void CMyAppDlg::OnBnClickedButtonSs()
+{
+	// TODO: 여기에 컨트롤 알림 처리기 코드를 추가합니다.
+	static int toggle = 1;
+	if (toggle) {
+		Send(0x06, 0x48, 0x00, 0x02); //ADC1(조도센서)이벤트 활성화
+		Send(0x06, 0x49, 0x00, 0x0a); // 반환시간 10ms
+		toggle = 0;
+		GetDlgItem(IDC_BUTTON_SS)->SetWindowTextW(_T("정지"));
+	}
+	else
+	{
+		Send(0x06, 0x48, 0x00, 0x00); // 조도센서 비활성화
+		Send(0x06, 0x49, 0x00, 0x00); // 반환종료
+		Send(0x06, 0x70, 0x00, 0x00); // 피에조 끔
+		ledon(0); //LED끔
+		Fndon(0); //FND끔
+		toggle = 1;
+		GetDlgItem(IDC_EDIT_COM)->SetWindowTextW(_T("")); //숫자 초기화
+		GetDlgItem(IDC_EDIT_SET)->SetWindowTextW(_T(""));
+		GetDlgItem(IDC_BUTTON_SS)->SetWindowTextW(_T("시작"));
+	}
+}
+
+
+afx_msg LRESULT CMyAppDlg::ADV1Access(WPARAM wParam, LPARAM lParam)
+{
+	// TODO: 여기에 구현 코드 추가.
+
+	CString str;
+	int Temp;
+	UINT8 ui8Func = (UINT8)(lParam >> 24) & 0xff;
+	UINT8 ui8Addr = (UINT8)(lParam >> 16) & 0xff;
+	UINT16 ui16Value = (UINT16)lParam & 0xffff;
+
+	if (ui8Func == 33) {  // FC_ACE
+		switch (ui8Addr) {
+		case 0x41: // ADC1==조도
+			Temp = (int)ui16Value;
+			str.Format(_T("%d"), Temp);
+			GetDlgItem(IDC_EDIT_COM)->SetWindowText(str);
+			if (Temp >= 1000) {
+				GetDlgItem(IDC_EDIT_SET)->SetWindowTextW(_T("매우밝음"));
+				ledon(0);
+			}
+			else if(Temp >= 750) {
+				GetDlgItem(IDC_EDIT_SET)->SetWindowTextW(_T("밝음"));
+				ledon(3);
+			}
+			else if (Temp >= 400) {
+				GetDlgItem(IDC_EDIT_SET)->SetWindowTextW(_T("어두움"));
+				ledon(2);
+			}
+			else
+			{
+				GetDlgItem(IDC_EDIT_SET)->SetWindowTextW(_T("매우 어두움"));
+				ledon(1);
+				Fndon(4);
+				PiezoTone(); //넣을시 FND가 동작을 안함..
+			}
+			break;
+		default:
+			break;
+		}
+	}
+	return afx_msg LRESULT();
+}
+
+
+//LED 켤고 끌수있는 코드
+void CMyAppDlg::ledon(int a)
+{
+	// TODO: 여기에 구현 코드 추가.
+	switch (a)
+	{
+	case 1: 
+		Send(0x05, 0x00, 0x07, 0xff);
+		Send(0x05, 0x00, 0x06, 0xff);
+		Send(0x05, 0x00, 0x05, 0xff);
+		Send(0x05, 0x00, 0x04, 0xff);
+		Send(0x05, 0x00, 0x03, 0xff);
+		Send(0x05, 0x00, 0x02, 0xff);
+		Send(0x05, 0x00, 0x01, 0xff);
+		Send(0x05, 0x00, 0x00, 0xff);
+		break;
+	case 2:
+		Send(0x05, 0x00, 0x07, 0xff);
+		Send(0x05, 0x00, 0x06, 0xff);
+		Send(0x05, 0x00, 0x05, 0xff);
+		Send(0x05, 0x00, 0x04, 0xff);
+		Send(0x05, 0x00, 0x03, 0x00);
+		Send(0x05, 0x00, 0x02, 0x00);
+		Send(0x05, 0x00, 0x01, 0x00);
+		Send(0x05, 0x00, 0x00, 0x00);
+		break;
+	case 3:
+		Send(0x05, 0x00, 0x07, 0x00);
+		Send(0x05, 0x00, 0x06, 0x00);
+		Send(0x05, 0x00, 0x05, 0x00);
+		Send(0x05, 0x00, 0x04, 0x00);
+		Send(0x05, 0x00, 0x03, 0xff);
+		Send(0x05, 0x00, 0x02, 0xff);
+		Send(0x05, 0x00, 0x01, 0xff);
+		Send(0x05, 0x00, 0x00, 0xff);
+	default: // LED종료
+		Send(0x05, 0x00, 0x07, 0x00);
+		Send(0x05, 0x00, 0x06, 0x00);
+		Send(0x05, 0x00, 0x05, 0x00);
+		Send(0x05, 0x00, 0x04, 0x00);
+		Send(0x05, 0x00, 0x03, 0x00);
+		Send(0x05, 0x00, 0x02, 0x00);
+		Send(0x05, 0x00, 0x01, 0x00);
+		Send(0x05, 0x00, 0x00, 0x00);
+		break;
+	}
+}
+
+
+void CMyAppDlg::Fndon(int v)
+{
+	// TODO: 여기에 구현 코드 추가.
+ 
+	switch (v)
+	{
+	case 4:
+		Send(0x06, 0x31, 0x00, 0x00);
+		Send(0x06, 0x32, 0x00, 0x38); // FND에 LOU 표시 (W = > U)
+		Send(0x06, 0x33, 0x00, 0x3f);
+		Send(0x06, 0x34, 0x00, 0x3e);
+	default:
+		Send(0x06, 0x31, 0x00, 0x00);
+		Send(0x06, 0x32, 0x00, 0x00);
+		Send(0x06, 0x33, 0x00, 0x00);
+		Send(0x06, 0x34, 0x00, 0x00);
+		break;
+	}
+}
+
+void CMyAppDlg::PiezoTone()
+{
+	_MyBusFrame  p_Query;
+	p_Query.ui8Func = FC_WOR;
+	p_Query.ui8Addr = VC_PIEZO_ENABLE;
+	p_Query.ui8DataH = 0;
+	p_Query.ui8DataL = 1;
+	MyBusSendFrame(&p_Query);
+
+	p_Query.ui8Func = FC_WOR;
+	p_Query.ui8Addr = VC_PIEZO_TONE;
+	p_Query.ui8DataH = 0x53;
+	p_Query.ui8DataL = 0x0e8;
+	MyBusSendFrame(&p_Query);
 }

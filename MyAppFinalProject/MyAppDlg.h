@@ -36,4 +36,10 @@ public:
 	afx_msg void OnBnClickedBtnCommConfig();
 	afx_msg void OnBnClickedBtnCommOpenClose();
 	afx_msg void OnClose();
+	void Send(UINT8 f, UINT8 a, UINT8 h, UINT8 l);
+	afx_msg void OnBnClickedButtonSs();
+	afx_msg LRESULT ADV1Access(WPARAM wParam, LPARAM lParam);
+	void ledon(int a);
+	void Fndon(int v);
+	void PiezoTone();
 };
