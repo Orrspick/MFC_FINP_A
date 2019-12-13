@@ -275,8 +275,8 @@ void CMyAppDlg::OnBnClickedButtonSs()
 		ledon(0); //LED끔
 		Fndon(0); //FND끔
 		toggle = 1;
-		GetDlgItem(IDC_EDIT_COM)->SetWindowTextW(_T("")); //숫자 초기화
-		GetDlgItem(IDC_EDIT_SET)->SetWindowTextW(_T(""));
+		GetDlgItem(IDC_ADV1_CALL)->SetWindowTextW(_T("")); //숫자 초기화
+		GetDlgItem(IDC_ADV1_COMM)->SetWindowTextW(_T(""));
 		GetDlgItem(IDC_BUTTON_SS)->SetWindowTextW(_T("시작"));
 	}
 }
@@ -297,22 +297,22 @@ afx_msg LRESULT CMyAppDlg::ADV1Access(WPARAM wParam, LPARAM lParam)
 		case 0x41: // ADC1==조도
 			Temp = (int)ui16Value;
 			str.Format(_T("%d"), Temp);
-			GetDlgItem(IDC_EDIT_COM)->SetWindowText(str);
+			GetDlgItem(IDC_ADV1_CALL)->SetWindowText(str);
 			if (Temp >= 1000) {
-				GetDlgItem(IDC_EDIT_SET)->SetWindowTextW(_T("매우밝음"));
+				GetDlgItem(IDC_ADV1_COMM)->SetWindowTextW(_T("매우밝음"));
 				ledon(0);
 			}
 			else if(Temp >= 750) {
-				GetDlgItem(IDC_EDIT_SET)->SetWindowTextW(_T("밝음"));
+				GetDlgItem(IDC_ADV1_COMM)->SetWindowTextW(_T("밝음"));
 				ledon(3);
 			}
 			else if (Temp >= 400) {
-				GetDlgItem(IDC_EDIT_SET)->SetWindowTextW(_T("어두움"));
+				GetDlgItem(IDC_ADV1_COMM)->SetWindowTextW(_T("어두움"));
 				ledon(2);
 			}
 			else
 			{
-				GetDlgItem(IDC_EDIT_SET)->SetWindowTextW(_T("매우 어두움"));
+				GetDlgItem(IDC_ADV1_COMM)->SetWindowTextW(_T("매우 어두움"));
 				ledon(1);
 				Fndon(4);
 				PiezoTone(); //넣을시 FND가 동작을 안함..
@@ -332,7 +332,7 @@ void CMyAppDlg::ledon(int a)
 	// TODO: 여기에 구현 코드 추가.
 	switch (a)
 	{
-	case 1: 
+	case 1: //전부 켬
 		Send(0x05, 0x00, 0x07, 0xff);
 		Send(0x05, 0x00, 0x06, 0xff);
 		Send(0x05, 0x00, 0x05, 0xff);
@@ -342,7 +342,7 @@ void CMyAppDlg::ledon(int a)
 		Send(0x05, 0x00, 0x01, 0xff);
 		Send(0x05, 0x00, 0x00, 0xff);
 		break;
-	case 2:
+	case 2: //왼쪽 켬
 		Send(0x05, 0x00, 0x07, 0xff);
 		Send(0x05, 0x00, 0x06, 0xff);
 		Send(0x05, 0x00, 0x05, 0xff);
@@ -352,7 +352,7 @@ void CMyAppDlg::ledon(int a)
 		Send(0x05, 0x00, 0x01, 0x00);
 		Send(0x05, 0x00, 0x00, 0x00);
 		break;
-	case 3:
+	case 3: //오른쪽 켬
 		Send(0x05, 0x00, 0x07, 0x00);
 		Send(0x05, 0x00, 0x06, 0x00);
 		Send(0x05, 0x00, 0x05, 0x00);
@@ -397,16 +397,17 @@ void CMyAppDlg::Fndon(int v)
 
 void CMyAppDlg::PiezoTone()
 {
-	_MyBusFrame  p_Query;
-	p_Query.ui8Func = FC_WOR;
-	p_Query.ui8Addr = VC_PIEZO_ENABLE;
-	p_Query.ui8DataH = 0;
-	p_Query.ui8DataL = 1;
-	MyBusSendFrame(&p_Query);
+	_MyBusFrame  p;
 
-	p_Query.ui8Func = FC_WOR;
-	p_Query.ui8Addr = VC_PIEZO_TONE;
-	p_Query.ui8DataH = 0x53;
-	p_Query.ui8DataL = 0x0e8;
-	MyBusSendFrame(&p_Query);
+	p.ui8Func = FC_WOR;
+	p.ui8Addr = VC_PIEZO_ENABLE;
+	p.ui8DataH = 0;
+	p.ui8DataL = 1;
+	MyBusSendFrame(&p);
+
+	p.ui8Func = FC_WOR;
+	p.ui8Addr = VC_PIEZO_TONE;
+	p.ui8DataH = 0x53;
+	p.ui8DataL = 0x0e8;
+	MyBusSendFrame(&p);
 }
